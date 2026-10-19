@@ -1,0 +1,12 @@
+.venv/
+vendor/
+build/
+dist/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.egg-info/
+*.dmg
+*.zip
+*.exe
+.DS_Store

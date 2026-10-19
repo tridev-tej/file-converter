@@ -1,0 +1,154 @@
+name: Native builds
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      validate_office:
+        description: Install LibreOffice and validate optional routes
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            architecture: arm64
+            python: .venv/bin/python
+          - os: windows-latest
+            architecture: x64
+            python: .venv/Scripts/python.exe
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONPATH: src
+      FC_CONFIG_DIR: ${{ github.workspace }}/build/ci-config
+      FC_WORKSPACE: ${{ github.workspace }}/build/ci-work
+      FC_E2E_REPORT: build/e2e-${{ matrix.os }}.json
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.architecture }}
+      - name: Install pinned environment
+        shell: bash
+        run: |
+          python -m venv .venv
+          ${{ matrix.python }} -m pip install -r requirements.txt
+          mkdir -p build
+          ${{ matrix.python }} -m pip freeze > build/dependencies.txt
+      - name: Verified native Pandoc
+        shell: bash
+        run: |
+          ${{ matrix.python }} packaging/prepare_pandoc_ci.py
+          echo "$GITHUB_WORKSPACE/vendor/pandoc" >> "$GITHUB_PATH"
+      - name: Preflight and E2E
+        shell: bash
+        run: |
+          ${{ matrix.python }} packaging/preflight.py
+          ${{ matrix.python }} -m pytest tests/e2e -q
+          ${{ matrix.python }} -m file_converter self-test build/selftest
+      - name: Build macOS
+        if: runner.os == 'macOS'
+        run: bash packaging/build_mac.sh
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed" }
+          }
+      - name: Build Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./packaging/build_win.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-${{ matrix.os }}
+          path: |
+            build/*report*.json
+            build/preflight.json
+            build/selftest*/
+            build/dependencies.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            dist/FileConverter-macOS-arm64.dmg
+            dist/FileConverter-Windows-x64-Setup.exe
+            dist/FileConverter-Windows-x64.zip
+
+  office:
+    if: github.event_name == 'workflow_dispatch' && inputs.validate_office
+    runs-on: windows-latest
+    env:
+      PYTHONPATH: src
+      FC_CONFIG_DIR: ${{ github.workspace }}/build/office-config
+      FC_WORKSPACE: ${{ github.workspace }}/build/office-work
+      FC_E2E_REPORT: build/office-report.json
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - shell: powershell
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python.exe -m pip install -r requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed" }
+          choco install libreoffice-fresh --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "LibreOffice installation failed" }
+          .venv/Scripts/python.exe packaging/prepare_pandoc_ci.py
+          if ($LASTEXITCODE -ne 0) { throw "Pandoc verification failed" }
+          "$env:GITHUB_WORKSPACE/vendor/pandoc" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - shell: powershell
+        run: |
+          .venv/Scripts/python.exe -m pytest tests/e2e -q
+          if ($LASTEXITCODE -ne 0) { throw "Office E2E failed" }
+          .venv/Scripts/python.exe -c "from file_converter.core.tools import discover_tools; t=discover_tools(); assert t.office.available, t.office.reason"
+          if ($LASTEXITCODE -ne 0) { throw "Office was not exercised" }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: office-evidence
+          path: build/office-report.json
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+      - name: Validate exact assets
+        run: |
+          test -s release/FileConverter-macOS-arm64.dmg
+          test -s release/FileConverter-Windows-x64-Setup.exe
+          test -s release/FileConverter-Windows-x64.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: true
+          files: |
+            release/FileConverter-macOS-arm64.dmg
+            release/FileConverter-Windows-x64-Setup.exe
+            release/FileConverter-Windows-x64.zip
