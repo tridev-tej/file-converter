@@ -14,7 +14,7 @@ function Invoke-Python {
 Invoke-Python packaging/preflight.py
 Invoke-Python packaging/make_icons.py
 Invoke-Python packaging/collect_licenses.py
-Invoke-Python -c 'import shutil; from file_converter.core.tools import ffmpeg_path; shutil.copy2(ffmpeg_path(), "build/tools/ffmpeg.exe")'
+Invoke-Python packaging/copy_ffmpeg.py build/tools/ffmpeg.exe
 Invoke-Python -m PyInstaller --noconfirm --clean --workpath build/pyinstaller packaging/file_converter.spec
 & dist\FileConverter\file-converter.exe self-test build/selftest-app
 if ($LASTEXITCODE -ne 0) { throw "Frozen self-test failed" }

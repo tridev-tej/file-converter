@@ -15,7 +15,7 @@ test -x .venv/bin/python || { echo "Missing existing .venv" >&2; exit 1; }
 .venv/bin/python packaging/preflight.py
 .venv/bin/python packaging/make_icons.py
 .venv/bin/python packaging/collect_licenses.py
-.venv/bin/python -c 'import shutil; from file_converter.core.tools import ffmpeg_path; shutil.copy2(ffmpeg_path(), "build/tools/ffmpeg")'
+.venv/bin/python packaging/copy_ffmpeg.py build/tools/ffmpeg
 chmod +x build/tools/ffmpeg vendor/pandoc/pandoc
 .venv/bin/python -m PyInstaller --noconfirm --clean --workpath build/pyinstaller packaging/file_converter.spec
 /usr/bin/codesign --force --deep -s - dist/FileConverter.app
