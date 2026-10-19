@@ -75,20 +75,20 @@ def test_partial_copy_and_cleanup(samples, tmp_path):
     bad.mkdir()
     (bad / "link").symlink_to(samples / "notes.txt")
     good = tmp_path / "good.txt"
-    good.write_text("retained bytes")
+    good.write_text("retained bytes", encoding="utf-8")
     destination = tmp_path / "destination"
     destination.mkdir()
     result = convert("action.copy", [bad, good], {"destination": str(destination)})
     assert result.state == "partial"
     assert result.exit_code == 1
-    assert result.outputs[0].read_text() == "retained bytes"
+    assert result.outputs[0].read_text(encoding="utf-8") == "retained bytes"
     assert not list(destination.glob(".fileconverter-*"))
 
 
 def test_corrupt_input_cleanup(tmp_path):
     from test_content import convert
     path = tmp_path / "not-an-image.png"
-    path.write_text("broken input")
+    path.write_text("broken input", encoding="utf-8")
     result = convert("image.to.jpg", [path])
     assert result.state == "failed"
     assert not result.outputs

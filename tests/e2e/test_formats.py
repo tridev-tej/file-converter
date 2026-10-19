@@ -44,7 +44,7 @@ def test_image_metadata_orientation(tmp_path):
 @pytest.mark.parametrize("fmt", "tar tar.gz tar.bz2 tar.xz 7z gz bz2 xz".split())
 def test_archive_readers(tmp_path, fmt):
     source = tmp_path / "payload.txt"
-    source.write_text("archive reader café")
+    source.write_text("archive reader café", encoding="utf-8")
     path = tmp_path / ("payload." + fmt)
     if fmt.startswith("tar"):
         mode = {"tar": "w", "tar.gz": "w:gz", "tar.bz2": "w:bz2", "tar.xz": "w:xz"}[fmt]
@@ -102,7 +102,7 @@ def test_ods_reader(tmp_path):
 @pytest.mark.parametrize("fmt", "docx odt rtf html epub".split())
 def test_document_readers(samples, fmt):
     document = output("doc.to." + fmt, samples / "notes.md")
-    plain = output("doc.to.txt", document).read_text()
+    plain = output("doc.to.txt", document).read_text(encoding="utf-8")
     assert "Known Unicode café text" in plain
 
 
@@ -112,7 +112,7 @@ def test_subtitle_timing_and_markup(samples):
     cues = parse(converted)
     assert [(cue.start, cue.end) for cue in cues] == [(0, 500), (500, 1200)]
     assert cues[0].text == "<b>Hello</b>\nworld"
-    text = output("subs.to.txt", samples / "captions.vtt").read_text()
+    text = output("subs.to.txt", samples / "captions.vtt").read_text(encoding="utf-8")
     assert text == "Hello world\nAgain\n"
 
 

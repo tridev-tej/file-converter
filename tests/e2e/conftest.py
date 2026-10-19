@@ -20,7 +20,7 @@ def pytest_configure(config):
 def pytest_sessionfinish(session, exitstatus):
     from file_converter.core.catalog import build_catalog
     from file_converter.core.tools import discover_tools
-    REPORT["expected_ids"] = Path(__file__).with_name("expected_ids.txt").read_text().splitlines()
+    REPORT["expected_ids"] = Path(__file__).with_name("expected_ids.txt").read_text(encoding="utf-8").splitlines()
     REPORT["observed_ids"] = [op.id for op in build_catalog()]
     REPORT["tools"] = discover_tools().as_dict()
     import importlib.metadata

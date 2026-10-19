@@ -40,8 +40,8 @@ def generate(root):
     text_pdf(root / "one.pdf")
     text_pdf(root / "two.pdf")
     image.save(root / "scan.pdf")
-    (root / "notes.md").write_text("# FileConverter document\n\nKnown Unicode café text.\n\n![grid](one.png)\n")
-    (root / "notes.txt").write_text("FileConverter plain document")
+    (root / "notes.md").write_text("# FileConverter document\n\nKnown Unicode café text.\n\n![grid](one.png)\n", encoding="utf-8")
+    (root / "notes.txt").write_text("FileConverter plain document", encoding="utf-8")
     book = Workbook()
     sheet = book.active
     sheet.title = "Data"
@@ -51,12 +51,12 @@ def generate(root):
     book.save(root / "book.xlsx")
     (root / "data.csv").write_text('ID,Value,Name\n00123,42,"café, tea"\n', encoding="utf-8-sig")
     (root / "captions.srt").write_text("1\n00:00:00,000 --> 00:00:00,500\n<b>Hello</b>\nworld\n\n2\n00:00:00,500 --> 00:00:01,200\nAgain\n", encoding="utf-8-sig")
-    (root / "captions.vtt").write_text("WEBVTT\n\nNOTE metadata\nignore me\n\n00:00.000 --> 00:00.500 align:start\n<b>Hello</b>\nworld\n\n00:00.500 --> 00:01.200\nAgain\n")
+    (root / "captions.vtt").write_text("WEBVTT\n\nNOTE metadata\nignore me\n\n00:00.000 --> 00:00.500 align:start\n<b>Hello</b>\nworld\n\n00:00.500 --> 00:01.200\nAgain\n", encoding="utf-8")
     with zipfile.ZipFile(root / "sample.zip", "w") as archive:
         archive.writestr("nested/text.txt", "archive contents café")
         archive.writestr("empty/", "")
     (root / "folder").mkdir()
-    (root / "folder" / "file.txt").write_text("copied bytes")
+    (root / "folder" / "file.txt").write_text("copied bytes", encoding="utf-8")
     (root / "destination").mkdir()
     ocr = Image.new("RGB", (1400, 240), "white")
     ImageDraw.Draw(ocr).text((40, 60), "FILE CONVERTER TEST 123", fill="black", font=ImageFont.load_default(size=72))

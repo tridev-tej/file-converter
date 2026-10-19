@@ -49,7 +49,7 @@ def test_pdf_structure(samples):
     assert all(page.rotation == 90 for page in rotated.pages)
     merged = convert("pdf.merge", [samples / "two.pdf", samples / "one.pdf"])
     assert len(PdfReader(merged.outputs[0]).pages) == 4
-    text = output("pdf.to.txt", samples / "one.pdf").read_text()
+    text = output("pdf.to.txt", samples / "one.pdf").read_text(encoding="utf-8")
     assert text.index("page 1") < text.index("page 2")
     pages = output("pdf.to.png", samples / "one.pdf")
     from PIL import Image, ImageStat
@@ -114,7 +114,7 @@ def test_archive_content(samples):
         assert archive.extractfile("nested/text.txt").read().decode() == "archive contents café"
         assert archive.getmember("empty").isdir()
     directory = output("archive.extract", samples / "sample.zip")
-    assert (directory / "nested/text.txt").read_text() == "archive contents café"
+    assert (directory / "nested/text.txt").read_text(encoding="utf-8") == "archive contents café"
     assert (directory / "empty").is_dir()
 
 
@@ -155,7 +155,7 @@ def test_copy_move_and_recursion(samples, tmp_path):
     assert (first / "file.txt").read_bytes() == (source / "file.txt").read_bytes()
     moved = output("action.move", source, {"destination": str(target)})
     assert not source.exists()
-    assert (moved / "file.txt").read_text() == "copied bytes"
+    assert (moved / "file.txt").read_text(encoding="utf-8") == "copied bytes"
 
 
 def test_process_cancel(tmp_path):
@@ -188,7 +188,7 @@ def test_pandoc_media(samples):
     import re
     docx = output("doc.to.docx", samples / "notes.md")
     markdown = output("doc.to.md", docx)
-    text = markdown.read_text()
+    text = markdown.read_text(encoding="utf-8")
     assert "Known Unicode" in text
     for resource in re.findall(r"!\\?\[.*?\]\\?\((.*?)\\?\)", text):
         assert (markdown.parent / resource).exists(), text

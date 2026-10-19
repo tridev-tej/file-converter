@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from conftest import REPORT
 
-IDS = Path(__file__).with_name("expected_ids.txt").read_text().splitlines()
+IDS = Path(__file__).with_name("expected_ids.txt").read_text(encoding="utf-8").splitlines()
 
 
 def inputs_for(op, root):
@@ -138,7 +138,7 @@ def test_cli_contract(samples):
 def test_cli_move(tmp_path):
     import os
     source = tmp_path / "move me.txt"
-    source.write_text("moved content")
+    source.write_text("moved content", encoding="utf-8")
     destination = tmp_path / "destination"
     destination.mkdir()
     env = dict(os.environ, PYTHONPATH=str(Path("src").absolute()))
@@ -147,7 +147,7 @@ def test_cli_move(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     data = json.loads(result.stdout)
     assert data["state"] == "succeeded"
-    assert Path(data["outputs"][0]).read_text() == "moved content"
+    assert Path(data["outputs"][0]).read_text(encoding="utf-8") == "moved content"
     assert not source.exists()
 
 
@@ -174,7 +174,7 @@ def test_adversarial_contract(samples, tmp_path):
     result = execute(OperationRequest("video.to.mp3", (samples / "silent.mp4",), {}, settings))
     assert result.state == "failed"
     config = tmp_path / "settings.json"
-    config.write_text("{")
+    config.write_text("{", encoding="utf-8")
     with pytest.raises(ValueError):
         load_settings(config)
 
@@ -190,4 +190,4 @@ def prepare_video_input(op, samples, inputs):
 
 def assert_ocr(op, result):
     if op.id == "tools.ocr":
-        assert "FILE CONVERTER TEST 123" in result.outputs[0].read_text().upper()
+        assert "FILE CONVERTER TEST 123" in result.outputs[0].read_text(encoding="utf-8").upper()
