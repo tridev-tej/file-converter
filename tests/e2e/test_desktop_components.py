@@ -93,3 +93,46 @@ def test_corrupt_input_cleanup(tmp_path):
     assert result.state == "failed"
     assert not result.outputs
     assert not list(tmp_path.glob(".fileconverter-*"))
+
+
+def test_selection_click_job(samples, monkeypatch):
+    from PySide6.QtCore import QPoint, Qt
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QApplication
+    from file_converter.core.settings import Settings
+    from file_converter.core.tools import discover_tools
+    from file_converter.platform import window_mac
+    from file_converter.ui.controller import Controller
+    from file_converter.ui.jobs import JobManager
+    from file_converter.ui.wheel import Wheel
+    app = QApplication.instance() or QApplication(["test"])
+    source = samples / "one.png"
+    monkeypatch.setattr(window_mac, "finder_selection", lambda: [str(source)])
+    wheel = Wheel()
+    jobs = JobManager()
+    controller = Controller(wheel, jobs, Settings(), discover_tools())
+    try:
+        controller.gesture("select")
+        assert wheel.isVisible() and controller.selection
+        assert [str(path) for path in wheel.inputs] == [str(source)]
+        controller.gesture("switch:Control")
+        assert controller.kind == "Tools"
+        controller.gesture("switch:Shift")
+        assert controller.kind == "Convert"
+        QTest.mouseClick(wheel, Qt.LeftButton, Qt.NoModifier, QPoint(221, 80))
+        assert not wheel.isVisible()
+        assert len(jobs.jobs) == 1
+        deadline = time.monotonic() + 10
+        while jobs.active() and time.monotonic() < deadline:
+            app.processEvents()
+            time.sleep(0.01)
+        job = next(iter(jobs.jobs.values()))
+        assert job.state == "succeeded", job.message
+        assert job.result.outputs[0].suffix == ".jpg"
+    finally:
+        controller.hide()
+        jobs.close()
+        for popup in jobs.popups:
+            popup.close()
+        jobs.window.close()
+        wheel.close()

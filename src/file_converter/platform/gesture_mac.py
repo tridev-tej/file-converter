@@ -68,6 +68,8 @@ class Gesture(QObject):
         return event
 
     def mouse_down(self, event):
+        if self.visible():
+            self.event.emit("press")
         self.down = True
         self.change_count = self.pasteboard.changeCount()
         self.pending = None
@@ -87,11 +89,20 @@ class Gesture(QObject):
             self.held.remove(code)
             key = self.pending
             self.pending = None
-            if key == code and not self.held and self.dragging() and keys[code] != "Command":
-                self.event.emit(keys[code])
+            if key == code and not self.held and keys[code] != "Command":
+                self.tapped(keys[code])
         else:
             self.pending = code if not self.held else None
             self.held.add(code)
+
+    def tapped(self, name):
+        from .window_mac import finder_is_frontmost
+        if self.dragging():
+            self.event.emit(name)
+        elif name == "Alt" and finder_is_frontmost():
+            self.event.emit("select")
+        elif self.visible():
+            self.event.emit("switch:" + name)
 
     def dragging(self):
         return self.down and self.pasteboard.changeCount() != self.change_count

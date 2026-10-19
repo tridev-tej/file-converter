@@ -39,7 +39,7 @@ cli_scripts = [script for script in analysis.scripts if script[0] != "entry_gui"
 gui = EXE(pyz, gui_scripts, exclude_binaries=True, name="FileConverter", console=False, icon=str(root / "build/icons" / ("FileConverter.icns" if mac else "FileConverter.ico")), target_arch="arm64" if mac else None)
 if mac:
     collection = COLLECT(gui, analysis.binaries, analysis.datas, strip=False, upx=False, name="FileConverter")
-    bundle = BUNDLE(collection, name="FileConverter.app", icon=str(root / "build/icons/FileConverter.icns"), bundle_identifier="com.tejeshvaish.fileconverter", info_plist={"LSUIElement": True, "NSAppleEventsUsageDescription": "FileConverter opens Terminal in the selected folder when you choose Open terminal.", "CFBundleShortVersionString": "1.0.0", "NSHighResolutionCapable": True})
+    bundle = BUNDLE(collection, name="FileConverter.app", icon=str(root / "build/icons/FileConverter.icns"), bundle_identifier="com.tejeshvaish.fileconverter", info_plist={"LSUIElement": True, "NSAppleEventsUsageDescription": "FileConverter reads the files you selected in Finder and opens Terminal when you choose Open terminal.", "CFBundleShortVersionString": "1.0.0", "NSHighResolutionCapable": True})
 else:
     cli = EXE(pyz, cli_scripts, exclude_binaries=True, name="file-converter", console=True, icon=str(root / "build/icons/FileConverter.ico"))
     collection = COLLECT(gui, cli, analysis.binaries, analysis.datas, strip=False, upx=False, name="FileConverter")

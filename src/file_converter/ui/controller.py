@@ -1,9 +1,10 @@
 """Wheel state, authoritative drop selection, repeat and job submission."""
 
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QTimer, Slot
+from PySide6.QtCore import QObject, QPoint, QTimer, Slot
 from PySide6.QtWidgets import QMessageBox
 
 from ..core.catalog import build_catalog
@@ -28,6 +29,7 @@ class Controller(QObject):
         self.state = "hidden"
         self.repeat = False
         self.native_drag = False
+        self.selection = False
         self.items = ()
         self.drop_generation = 0
         self.release_timer = QTimer(self)
@@ -46,6 +48,7 @@ class Controller(QObject):
         self.kind = kind
         self.repeat = False
         self.native_drag = native
+        self.selection = False
         self.set_files(list(paths))
         self.state = "populated" if self.items else "awaiting_files"
         self.wheel.show_at_cursor()
@@ -78,24 +81,55 @@ class Controller(QObject):
 
     @Slot(str)
     def gesture(self, key):
-        if key == "escape":
-            self.hide()
-            return
-        if key == "repeat":
-            if self.wheel.isVisible():
-                self.toggle_repeat()
-            return
-        target = self.settings.gestures.get(key)
+        handlers = {"escape": self.hide, "repeat": self.repeat_key, "select": self.show_selection, "press": self.pressed}
+        if key in handlers:
+            handlers[key]()
+        elif key.startswith("switch:"):
+            if self.selection:
+                self.switch(self.settings.gestures.get(key[len("switch:"):]))
+        else:
+            self.drag_gesture(self.settings.gestures.get(key))
+
+    def drag_gesture(self, target):
         if not target:
             return
         if not self.wheel.isVisible() or not self.native_drag:
             self.show(kind=target, native=True)
-        elif self.kind == target:
-            self.toggle_repeat()
         else:
-            self.kind = target
-            self.repeat = False
-            self.refresh()
+            self.switch(target)
+
+    def switch(self, target):
+        if not target:
+            return
+        if self.kind == target:
+            self.toggle_repeat()
+            return
+        self.kind = target
+        self.repeat = False
+        self.refresh()
+
+    def repeat_key(self):
+        if self.wheel.isVisible():
+            self.toggle_repeat()
+
+    def show_selection(self):
+        from ..platform.window_mac import finder_selection
+        try:
+            paths = finder_selection()
+        except (RuntimeError, OSError, subprocess.SubprocessError) as error:
+            QMessageBox.warning(None, "FileConverter", "Could not read the Finder selection.\n\n" + str(error))
+            return
+        if not paths:
+            return
+        self.show(paths, kind="Convert")
+        self.selection = True
+
+    def pressed(self):
+        if not self.selection or not self.wheel.isVisible():
+            return
+        from ..platform.window_mac import cursor_position
+        if not self.wheel.geometry().contains(QPoint(*cursor_position())):
+            self.hide()
 
     def toggle_repeat(self):
         self.repeat = not self.repeat
@@ -115,6 +149,7 @@ class Controller(QObject):
         self.wheel.hide()
         self.state = "hidden"
         self.native_drag = False
+        self.selection = False
 
     def request(self, identifier, parameters):
         return OperationRequest(identifier, tuple(item.path for item in self.items), parameters, self.settings)

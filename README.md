@@ -8,6 +8,10 @@ Shift opens Convert, Control opens Tools, Option/Alt opens Actions. Tap the same
 modifier again, or R, to repeat the last successful action. Tap another modifier
 to switch wheels. Drop in the center or press Escape to cancel.
 
+On macOS you can also skip the drag: select files in Finder, tap Option, then
+click a slice. Shift and Control switch wheels; clicking outside, the center or
+Escape closes it. The first use asks to let FileConverter control Finder.
+
 The tray provides Open drop wheel, Settings, Jobs and Quit. Closing windows keeps
 the tray running. A single conversion worker queues jobs; each card offers Open,
 Reveal, Cancel and error details. Already completed outputs survive batch errors
