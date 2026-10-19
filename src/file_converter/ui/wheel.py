@@ -1,7 +1,7 @@
 """Non-activating radial drop surface; conversion is owned by the controller."""
 
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QCursor, QFont, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
 from ..core.wheel_layout import CENTER, INNER, OUTER, SIZE, hit_test, label_center
@@ -40,8 +40,11 @@ class Wheel(QWidget):
 
     def show_at_cursor(self):
         cursor = QCursor.pos()
+        if QGuiApplication.platformName() == "cocoa":
+            from ..platform.window_mac import cursor_position, float_over_spaces
+            cursor = QPoint(*cursor_position())
+            float_over_spaces(self)
         screen = self.screen()
-        from PySide6.QtGui import QGuiApplication
         target = QGuiApplication.screenAt(cursor)
         if target is not None:
             screen = target

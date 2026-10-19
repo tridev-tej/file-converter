@@ -88,7 +88,7 @@ class Controller(QObject):
         target = self.settings.gestures.get(key)
         if not target:
             return
-        if not self.wheel.isVisible():
+        if not self.wheel.isVisible() or not self.native_drag:
             self.show(kind=target, native=True)
         elif self.kind == target:
             self.toggle_repeat()
